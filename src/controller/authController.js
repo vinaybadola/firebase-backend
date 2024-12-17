@@ -1,5 +1,7 @@
 const userModel = require("../models/userModel");
 const slugify = require("slugify");
+const sendEmail = require("../../config/mailer");
+
 const {
   getAuth,
   createUserWithEmailAndPassword,
@@ -108,37 +110,42 @@ class AuthController {
   // Resend verification email
   async resendVerificationEmail(req, res) {
     const { email } = req.body;
-
+  
     if (!email) {
       return res.status(400).json({ error: "Email is required." });
     }
-
+  
     try {
       const user = await userModel.findOne({ email });
-
+  
       if (!user) {
         return res.status(404).json({ error: "User not found." });
       }
-
+  
       if (user.has_verified) {
         return res.status(400).json({ error: "Email is already verified." });
       }
-
-      // Resend verification email through Firebase Auth
-      const auth = getAuth();
-      const firebaseUser = await auth.getUserByEmail(email);
-
-      if (!firebaseUser) {
-        return res.status(404).json({ error: "User not found in Firebase." });
-      }
-
-      await sendEmailVerification(firebaseUser);
+  
+      // Generate a new email verification link
+      const verificationLink = await admin.auth().generateEmailVerificationLink(email);
+  
+      // Send the verification email using Nodemailer
+      const subject = "Verify Your Email Address";
+      const html = `
+        <h1>Email Verification</h1>
+        <p>Click the link below to verify your email address:</p>
+        <a href="${verificationLink}">Verify Email</a>
+      `;
+  
+      await sendEmail(email, subject, "Click the link to verify your email.", html);
+  
       res.status(200).json({ message: "Verification email resent successfully." });
     } catch (error) {
       console.error("Error in resendVerificationEmail:", error.message);
       res.status(500).json({ error: "Failed to resend verification email. Please try again." });
     }
   }
+  
 }
 
 module.exports = AuthController;
