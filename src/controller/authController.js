@@ -64,34 +64,44 @@ class AuthController {
 
   // Verify email using Firebase Admin and oobCode
   async verifyEmail(req, res) {
-    const { email, oobCode } = req.body;
-
-    if (!email || !oobCode) {
-      return res.status(400).json({ error: "Email and oobCode are required." });
+    const { email } = req.body;
+  
+    if (!email) {
+      return res.status(400).json({ error: "Email is required." });
     }
-
+  
     try {
-      // Verify oobCode using Firebase Admin
-      await admin.auth().verifyEmail(oobCode);
-
+      // Fetch user details from Firebase Authentication
+      const firebaseUser = await admin.auth().getUserByEmail(email);
+  
+      if (!firebaseUser.emailVerified) {
+        return res
+          .status(400)
+          .json({ error: "Email has not been verified yet in Firebase." });
+      }
+  
+      // Check and update in your local database
       const user = await userModel.findOne({ email });
-
+  
       if (!user) {
         return res.status(404).json({ error: "User not found." });
       }
-
+  
       if (user.has_verified) {
-        return res.status(400).json({ error: "Email is already verified." });
+        return res
+          .status(400)
+          .json({ error: "Email is already marked as verified." });
       }
-
-      // Update verification status
+  
       user.has_verified = true;
       await user.save();
-
+  
       res.status(200).json({ message: "Email verified successfully." });
     } catch (error) {
-      console.error("Error in verifyEmail:", error.message);
-      res.status(500).json({ error: "Failed to verify email. Please try again." });
+      console.error("Error verifying email:", error.message);
+      res.status(500).json({
+        error: "Failed to verify email. Please ensure the process is correct.",
+      });
     }
   }
 
