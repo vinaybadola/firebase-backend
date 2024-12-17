@@ -20,11 +20,16 @@ class AuthController {
     const { first_name, last_name, email, password, phone, user_type } = req.body;
 
     try {
-      // Create user in Firebase Auth
+      // check if user is already exist 
+      const userExist = await userModel.findOne({ email });
+
+      if(userExist){
+        return res.status(400).json({ error: "User already exist" });
+      }
+      
       const auth = getAuth();
       const firebaseUser = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Create user in MongoDB
       const user = new userModel({
         first_name,
         last_name,
@@ -42,7 +47,18 @@ class AuthController {
       res.status(201).json({ message: "User registered successfully. Verification email sent." });
     } catch (error) {
       console.error("Error in registerUser:", error.message);
-      res.status(500).json({ error: "Registration failed. Please try again." });
+      // handle the firebase errors 
+      if (error.code === "auth/email-already-in-use") {
+        return res.status(400).json({ error: "Email is already in use." });
+      }
+      if (error.code === "auth/invalid-email") {
+        return res.status(400).json({ error: "Invalid email." });
+      }
+      if (error.code === "auth/weak-password") {
+        return res.status(400).json({ error: "Password is too weak." });
+      }
+
+      res.status(500).json({ success: false, error: "Registration failed. Please try again." });
     }
   }
 
