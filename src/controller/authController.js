@@ -1,6 +1,6 @@
 const userModel = require("../models/userModel");
-const slugify = require("slugify");
 const sendEmail = require("../../config/mailer");
+const generateUniqueSlug = require("../../_helpers/helperFunctions");
 
 const {
   getAuth,
@@ -11,45 +11,49 @@ const admin = require("../../config/firebaseAdminConfig");
 const { validationResult } = require("express-validator");
 
 class AuthController {
-  // Register a new user
   async registerUser(req, res) {
-    
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    console.log('reqbody', req.body);
+
     const { first_name, last_name, email, password, phone, user_type } = req.body;
 
     try {
-      // check if user is already exist 
+      // Check if the user already exists
       const userExist = await userModel.findOne({ email });
-
-      if(userExist){
-        return res.status(400).json({ error: "User already exist" });
+      if (userExist) {
+        return res.status(400).json({ error: "User already exists" });
       }
-      
+
       const auth = getAuth();
       const firebaseUser = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Generate unique slug using helper
+      const slug = await generateUniqueSlug({ first_name, last_name });
 
       const user = new userModel({
         first_name,
         last_name,
         email,
         phone,
+        password,
         user_type,
-        slug: slugify(`${first_name}-${last_name}`, { lower: true }),
-        has_verified: false
+        slug,
+        has_verified: false,
       });
       await user.save();
 
       // Send verification email
       await sendEmailVerification(firebaseUser.user);
 
-      res.status(201).json({ message: "User registered successfully. Verification email sent." });
+      res.status(201).json({
+        message: "User registered successfully. Verification email sent.",
+      });
     } catch (error) {
       console.error("Error in registerUser:", error.message);
-      // handle the firebase errors 
+
+      // Handle Firebase errors
       if (error.code === "auth/email-already-in-use") {
         return res.status(400).json({ error: "Email is already in use." });
       }
@@ -60,11 +64,17 @@ class AuthController {
         return res.status(400).json({ error: "Password is too weak." });
       }
 
-      res.status(500).json({ success: false, error: "Registration failed. Please try again." });
+      if (error.message === "Could not generate a unique slug. Please choose a different name.") {
+        return res.status(400).json({ error: error.message });
+      }
+
+      res.status(500).json({
+        success: false,
+        error: "Registration failed. Please try again.",
+      });
     }
   }
 
-  // Verify email using Firebase Admin and oobCode
   async verifyEmail(req, res) {
     const { email } = req.body;
   
@@ -98,7 +108,7 @@ class AuthController {
       user.has_verified = true;
       await user.save();
   
-      res.status(200).json({ message: "Email verified successfully." });
+      res.status(200).json({ success: "ok",message: "Email verified successfully." });
     } catch (error) {
       console.error("Error verifying email:", error.message);
       res.status(500).json({
@@ -107,7 +117,6 @@ class AuthController {
     }
   }
 
-  // Resend verification email
   async resendVerificationEmail(req, res) {
     const { email } = req.body;
   
