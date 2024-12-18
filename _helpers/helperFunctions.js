@@ -1,6 +1,6 @@
 const slugify = require("slugify");
 const { v4: uuidv4 } = require("uuid");
-const userModel = require("../models/userModel");
+const userModel = require("../src/models/userModel");
 
 /**
  * Generate a unique slug for a user with retry logic.
