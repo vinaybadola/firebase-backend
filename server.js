@@ -14,9 +14,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 connectDB();
 
 const corsOptions = {
-  origin: '*', 
+  origin: "https://full-stack-firebase-auth.vercel.app/", 
   methods: 'GET,POST,PUT,DELETE', 
-  allowedHeaders: ['Content-Type'] 
 };
 
 app.use(cors(corsOptions));
