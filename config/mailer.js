@@ -28,7 +28,7 @@ const sendEmail = async (to, subject, text, html) => {
     to: to,
     subject: subject,
     text: text,
-    html: html, // HTML content for rich email
+    html: html,
   };
 
   try {
