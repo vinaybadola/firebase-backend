@@ -13,6 +13,12 @@ app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Log the origin for debugging
+app.use((req, res, next) => {
+  console.log('Origin:', req.headers.origin);
+  next();
+});
+
 // CORS Configuration
 app.use(
   cors({
@@ -22,6 +28,9 @@ app.use(
     credentials: true,
   })
 );
+
+// Handle preflight requests
+app.options('*', cors());
 
 // Database Connection
 connectDB();
