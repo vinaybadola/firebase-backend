@@ -1,7 +1,9 @@
+
 const userModel = require("../models/userModel");
 const sendEmail = require("../../config/mailer");
 const generateUniqueSlug = require("../../_helpers/helperFunctions");
 const jwt = require("jsonwebtoken");
+const { getFromCache, setInCache } = require("../../config/cache"); 
 
 const {
   getAuth,
@@ -10,11 +12,10 @@ const {
 } = require("../../config/firebase");
 
 const admin = require("../../config/firebaseAdminConfig");
-
 const { validationResult } = require("express-validator");
+const auth = getAuth();
 
 class AuthController {
-
   async registerUser(req, res) {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -24,16 +25,19 @@ class AuthController {
     const { first_name, last_name, email, password, phone, user_type } = req.body;
 
     try {
-      // Check if the user already exists
-      const userExist = await userModel.findOne({ email });
-      if (userExist) {
+      const cachedUser = await getFromCache(`user:email:${email}`);
+      if (cachedUser) {
         return res.status(400).json({ error: "User already exists" });
       }
 
-      const auth = getAuth();
+      const userExist = await userModel.findOne({ email });
+      if (userExist) {
+        await setInCache(`user:email:${email}`, userExist, 60);
+        return res.status(400).json({ error: "User already exists" });
+      }
+
       const firebaseUser = await createUserWithEmailAndPassword(auth, email, password);
 
-      // Generate unique slug using helper
       const slug = await generateUniqueSlug({ first_name, last_name });
 
       const user = new userModel({
