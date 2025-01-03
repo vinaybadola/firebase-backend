@@ -3,7 +3,7 @@ const userModel = require("../models/userModel");
 const sendEmail = require("../../config/mailer");
 const generateUniqueSlug = require("../../_helpers/helperFunctions");
 const jwt = require("jsonwebtoken");
-const { getFromCache, setInCache } = require("../../config/cache"); 
+// const { getFromCache, setInCache } = require("../../config/cache"); 
 
 const {
   getAuth,
@@ -25,14 +25,14 @@ class AuthController {
     const { first_name, last_name, email, password, phone, user_type } = req.body;
 
     try {
-      const cachedUser = await getFromCache(`user:email:${email}`);
-      if (cachedUser) {
-        return res.status(400).json({ error: "User already exists" });
-      }
+      // const cachedUser = await getFromCache(`user:email:${email}`);
+      // if (cachedUser) {
+      //   return res.status(400).json({ error: "User already exists" });
+      // }
 
       const userExist = await userModel.findOne({ email });
       if (userExist) {
-        await setInCache(`user:email:${email}`, userExist, 60);
+        // await setInCache(`user:email:${email}`, userExist, 60);
         return res.status(400).json({ error: "User already exists" });
       }
 

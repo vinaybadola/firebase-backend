@@ -16,13 +16,15 @@ app.use(cookieParser());
 // Log the origin for debugging
 app.use((req, res, next) => {
   console.log('Origin:', req.headers.origin);
+  console.log('Method:', req.method);
+  console.log('Headers:', req.headers);
   next();
 });
 
 // CORS Configuration
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: "https://full-stack-firebase-auth.vercel.app/",
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
